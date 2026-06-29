@@ -58,7 +58,7 @@ if (!g) {
 } else {
   const state = { step: 1, method: "btc", proofFile: null, proofName: "", submitting: false };
   const BTC_ADDR = "bc1q0n5edtj7yvw7rhrkghlc95v76lzpt78nz3xnr5";
-  const BANK = { bank: "First Continental Trust", name: "CapitalBridge Advisory LLC", acct: "8829 4471 0035", routing: "021000089", ref: g.id.toUpperCase() };
+  const BANK = { bank: "Clear Junction Limited", name: "CapitalBridge Advisory Secretary- justice osayame aighobahi", acct: "42717009", iban: "GB35CLJU04130742717009", swift: "CLJUGB21XXX", ref: g.id.toUpperCase() };
 
   function render() {
     content.innerHTML = ''
@@ -94,7 +94,8 @@ if (!g) {
         + '<div class="row"><span class="k">Bank</span><span class="v">'+BANK.bank+'</span></div>'
         + '<div class="row"><span class="k">Account name</span><span class="v">'+BANK.name+'</span></div>'
         + '<div class="row"><span class="k">Account #</span><span class="v">'+BANK.acct+' <button class="copy-btn" data-copy="'+BANK.acct+'">Copy</button></span></div>'
-        + '<div class="row"><span class="k">Routing #</span><span class="v">'+BANK.routing+' <button class="copy-btn" data-copy="'+BANK.routing+'">Copy</button></span></div>'
+        + '<div class="row"><span class="k">IBAN #</span><span class="v">'+BANK.iban+' <button class="copy-btn" data-copy="'+BANK.iban+'">Copy</button></span></div>'
+       + '<div class="row"><span class="k">Swift Code #</span><span class="v">'+BANK.swift+' <button class="copy-btn" data-copy="'+BANK.swift+'">Copy</button></span></div>'
         + '<div class="row"><span class="k">Reference</span><span class="v">'+BANK.ref+'</span></div></div>')
     + '<div class="note">Use the reference code above so we can match your payment to your application.</div>'
     + '<div class="field" style="margin-top:18px;"><label for="proof">Upload proof of payment (PNG, JPG, or PDF)</label>'
