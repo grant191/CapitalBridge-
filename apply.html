@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply — CapitalBridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/home.html"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span><span class="brand-tag">Funding Opportunities</span></span></a>
+    <nav class="nav"><a href="/home.html">Home</a><a href="/grants.html">Grants</a><a href="/about.html">About</a></nav>
+    <a class="btn btn-outline" href="/grants.html">Cancel</a>
+  </div>
+</header>
+
+<section style="padding:40px 0 80px;">
+  <div class="container" style="max-width:860px;">
+    <div id="content"></div>
+  </div>
+</section>
+
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <div class="check">✓</div>
+    <h2>Application submitted</h2>
+    <p>Your application has been received. A reviewer will respond within <strong>24–48 hours</strong> at the email you provided.</p>
+    <a class="btn btn-dark btn-block btn-lg" href="/grants.html">Browse more grants</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div><div class="brand"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span></span></div></div>
+    <div><h4>Explore</h4><ul><li><a href="/grants.html">Grant Opportunities</a></li><li><a href="/about.html">How It Works</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li>support@capitalbridge.example</li></ul></div>
+  </div>
+  <div class="container footer-bottom"><span>© <span id="yr"></span> CapitalBridge Advisory.</span><span>Independent funding facilitator.</span></div>
+</footer>
+
+<script src="/app.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPA_URL = "https://ejmblecwgrynpdkazmhw.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqbWJsZWN3Z3J5bnBka2F6bWh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NTgzMzksImV4cCI6MjA5ODIzNDMzOX0.KSHEiz7CkMlgqZD8ahX6ggjiDT3S8TWHvdnC-y0YFZw";
+const supa = createClient(SUPA_URL, SUPA_KEY);
+
+document.getElementById("yr").textContent = new Date().getFullYear();
+const g = CB.getGrant(CB.qs("id"));
+const content = document.getElementById("content");
+
+if (!g) {
+  content.innerHTML = '<div class="empty">Grant not found. <a href="/grants.html">Browse grants</a></div>';
+} else {
+  const state = { step: 1, method: "btc", proofFile: null, proofName: "", submitting: false };
+  const BTC_ADDR = "bc1qcapitalbridge9examplewalletx4kfg2lp0vt3z9";
+  const BANK = { bank: "First Continental Trust", name: "CapitalBridge Advisory LLC", acct: "8829 4471 0035", routing: "021000089", ref: g.id.toUpperCase() };
+
+  function render() {
+    content.innerHTML = ''
+      + '<div class="crumbs"><a href="/grants.html">Grants</a> / <a href="/grant.html?id='+g.id+'">'+g.name+'</a> / Apply</div>'
+      + '<div class="eyebrow">Application</div>'
+      + '<h1 style="margin-bottom:8px;">'+g.name+'</h1>'
+      + '<p style="color:var(--muted); margin-bottom:24px;">Processing fee: <strong style="color:var(--ink)">'+CB.fmt(g.processingFee)+'</strong> · Review time: '+g.processingTime+'</p>'
+      + '<div class="steps-bar">'
+      +   '<span class="pill '+(state.step===1?'active':'done')+'">1 · Payment</span><span class="sep"></span>'
+      +   '<span class="pill '+(state.step===2?'active':(state.step>2?'done':''))+'">2 · Application</span><span class="sep"></span>'
+      +   '<span class="pill '+(state.step===3?'active':'')+'">3 · Review</span>'
+      + '</div>'
+      + (state.step === 1 ? paymentStep() : applicationStep());
+    bind();
+  }
+
+  function paymentStep() {
+    return '<div class="panel">'
+    + '<h2 style="font-size:1.3rem;">Pay the processing fee</h2>'
+    + '<p style="color:var(--muted); font-size:14px;">Pay '+CB.fmt(g.processingFee)+' via Bitcoin or bank transfer, then upload proof of payment to unlock the application form.</p>'
+    + '<div class="pay-tabs">'
+    +   '<button class="pay-tab '+(state.method==="btc"?"active":"")+'" data-method="btc"><div class="label">Crypto</div><div class="value">Bitcoin (BTC)</div></button>'
+    +   '<button class="pay-tab '+(state.method==="bank"?"active":"")+'" data-method="bank"><div class="label">Wire / ACH</div><div class="value">Bank Transfer</div></button>'
+    + '</div>'
+    + (state.method === "btc"
+      ? '<div class="pay-details">'
+        + '<div class="row"><span class="k">Amount</span><span class="v">'+CB.fmt(g.processingFee)+' equivalent in BTC</span></div>'
+        + '<div class="row"><span class="k">Network</span><span class="v">Bitcoin (BTC) · mainnet</span></div>'
+        + '<div class="row"><span class="k">Wallet address</span><span class="v">'+BTC_ADDR+' <button class="copy-btn" data-copy="'+BTC_ADDR+'">Copy</button></span></div>'
+        + '<div class="row"><span class="k">Reference</span><span class="v">'+g.id.toUpperCase()+'</span></div></div>'
+      : '<div class="pay-details">'
+        + '<div class="row"><span class="k">Amount</span><span class="v">'+CB.fmt(g.processingFee)+'</span></div>'
+        + '<div class="row"><span class="k">Bank</span><span class="v">'+BANK.bank+'</span></div>'
+        + '<div class="row"><span class="k">Account name</span><span class="v">'+BANK.name+'</span></div>'
+        + '<div class="row"><span class="k">Account #</span><span class="v">'+BANK.acct+' <button class="copy-btn" data-copy="'+BANK.acct+'">Copy</button></span></div>'
+        + '<div class="row"><span class="k">Routing #</span><span class="v">'+BANK.routing+' <button class="copy-btn" data-copy="'+BANK.routing+'">Copy</button></span></div>'
+        + '<div class="row"><span class="k">Reference</span><span class="v">'+BANK.ref+'</span></div></div>')
+    + '<div class="note">Use the reference code above so we can match your payment to your application.</div>'
+    + '<div class="field" style="margin-top:18px;"><label for="proof">Upload proof of payment (PNG, JPG, or PDF)</label>'
+    +   '<input id="proof" type="file" accept="image/*,application/pdf">'
+    +   (state.proofName ? '<div style="font-size:12px;color:#059669;margin-top:6px;">✓ '+state.proofName+' attached</div>' : '') + '</div>'
+    + '<button class="btn btn-primary btn-lg btn-block" style="margin-top:18px;" id="continueBtn" '+(state.proofName?'':'disabled')+'>Continue to application</button>'
+    + '</div>';
+  }
+
+  function applicationStep() {
+    return '<div class="panel">'
+    + '<h2 style="font-size:1.3rem;">Business & contact details</h2>'
+    + '<p style="color:var(--muted); font-size:14px;">Fields marked * are required. Your information is reviewed under standard confidentiality.</p>'
+    + '<form id="applyForm" style="margin-top:18px;">'
+    +   '<div class="form-grid cols-2">'+field("businessName","Business name *","text",true)+field("industry","Industry *","text",true,g.industry)+'</div>'
+    +   '<div class="form-grid cols-2" style="margin-top:14px;">'+field("country","Country / Location *","text",true,g.country!=="Global"?g.country:"")+field("yearsOperating","Years operating *","number",true)+'</div>'
+    +   '<div class="form-grid cols-2" style="margin-top:14px;">'+field("revenue","Annual revenue (USD)","number",false)+field("requestedAmount","Requested amount (USD) *","number",true)+'</div>'
+    +   '<div class="form-grid" style="margin-top:14px;"><div class="field"><label for="useOfFunds">Use of funds *</label><textarea id="useOfFunds" required placeholder="Briefly describe how the funds will be used."></textarea></div></div>'
+    +   '<h3 style="margin-top:24px; font-family:Inter,sans-serif; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600;">Contact</h3>'
+    +   '<div class="form-grid cols-2" style="margin-top:8px;">'+field("contactName","Full name *","text",true)+field("email","Email *","email",true)+'</div>'
+    +   '<div class="form-grid cols-2" style="margin-top:14px;">'+field("phone","Phone","tel",false)+field("website","Website (optional)","url",false)+'</div>'
+    +   '<button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top:24px;" id="submitBtn">Submit application</button>'
+    + '</form></div>';
+  }
+
+  function field(id, label, type, req, val) {
+    return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+type+'" '+(req?'required':'')+' value="'+(val||"")+'"></div>';
+  }
+
+  function bind() {
+    document.querySelectorAll(".pay-tab").forEach(b => b.addEventListener("click", () => { state.method = b.dataset.method; render(); }));
+    document.querySelectorAll(".copy-btn").forEach(b => b.addEventListener("click", e => { e.preventDefault(); CB.copy(b.dataset.copy, b); }));
+    const proof = document.getElementById("proof");
+    if (proof) proof.addEventListener("change", () => {
+      if (proof.files && proof.files[0]) { state.proofFile = proof.files[0]; state.proofName = proof.files[0].name; render(); }
+    });
+    const cont = document.getElementById("continueBtn");
+    if (cont) cont.addEventListener("click", () => { if (!state.proofName) return; state.step = 2; render(); window.scrollTo({top:0,behavior:"smooth"}); });
+    const form = document.getElementById("applyForm");
+    if (form) form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (state.submitting) return;
+      state.submitting = true;
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true; btn.textContent = "Submitting…";
+      const data = {};
+      Array.from(form.querySelectorAll("input,textarea")).forEach(el => { data[el.id] = el.value; });
+
+      let proofUrl = null;
+      try {
+        if (state.proofFile) {
+          const ext = (state.proofName.split(".").pop() || "bin").toLowerCase();
+          const path = g.id + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,8) + "." + ext;
+          const up = await supa.storage.from("payment-proofs").upload(path, state.proofFile, { contentType: state.proofFile.type });
+          if (up.error) throw up.error;
+          proofUrl = up.data.path;
+        }
+        const payload = {
+          grant_id: g.id, grant_name: g.name,
+          payment_method: state.method, payment_proof_url: proofUrl,
+          full_name: data.contactName, email: data.email, phone: data.phone || "—",
+          business_name: data.businessName, business_type: data.industry,
+          business_description: "Industry: " + data.industry + (data.revenue ? " | Revenue: $" + data.revenue : "") + (data.website ? " | Website: " + data.website : ""),
+          funding_purpose: data.useOfFunds + (data.requestedAmount ? "\n\nRequested amount: $" + Number(data.requestedAmount).toLocaleString() : ""),
+          years_in_operation: data.yearsOperating, location: data.country, status: "pending"
+        };
+        const ins = await supa.from("applications").insert(payload);
+        if (ins.error) throw ins.error;
+        state.step = 3;
+        document.getElementById("confirmModal").classList.add("open");
+      } catch (err) {
+        console.error(err);
+        CB.toast("Submission failed: " + (err.message || "try again"));
+        btn.disabled = false; btn.textContent = "Submit application";
+        state.submitting = false;
+      }
+    });
+  }
+
+  render();
+}
+</script>
+</body>
+</html>

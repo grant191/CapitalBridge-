@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CapitalBridge — Federally Aligned Funding Opportunities</title>
+<meta name="description" content="CapitalBridge matches your business with funding opportunities and helps you apply in minutes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/home.html">
+      <span class="brand-mark">C</span>
+      <span class="brand-text">
+        <span class="brand-name">CapitalBridge</span>
+        <span class="brand-tag">Funding Opportunities</span>
+      </span>
+    </a>
+    <nav class="nav">
+      <a href="/home.html">Home</a>
+      <a href="/grants.html">Grants</a>
+      <a href="/about.html">About</a>
+    </nav>
+    <a class="btn btn-primary" href="/grants.html">Apply for Grants</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow">Federally aligned funding</div>
+      <h1>Capital that meets your business <span class="accent">where it stands.</span></h1>
+      <p class="hero-lede">CapitalBridge connects small businesses, startups, and operators with curated grant programs — and walks you through every application in minutes, not months.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="/grants.html">Browse Grants</a>
+        <a class="btn btn-outline btn-lg" href="/about.html">How It Works</a>
+      </div>
+      <div class="hero-meta">
+        <div><strong>$5K – $250K</strong>Funding bands</div>
+        <div><strong>6+</strong>Active programs</div>
+        <div><strong>24–48h</strong>Initial review</div>
+      </div>
+    </div>
+    <aside class="panel">
+      <div class="panel-title">
+        <h3>Funding Index</h3>
+        <span class="eyebrow">Updated weekly</span>
+      </div>
+      <div class="index-list" id="fundingIndex"></div>
+    </aside>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps from match to submission.</h2>
+      <p class="lede">A clear, documented path with no hidden steps. You stay in control end-to-end.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Discover</h3><p>Filter by industry, country, and funding range to surface programs that fit your business profile.</p></div>
+      <div class="step"><h3>Verify</h3><p>Pay a one-time processing fee that funds reviewer time and documentation help.</p></div>
+      <div class="step"><h3>Submit</h3><p>Complete the guided application form. Your file routes to matched reviewers within 24–48 hours.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Featured grants</div>
+      <h2>A curated index, refreshed weekly.</h2>
+    </div>
+    <div class="grid-3" id="featuredGrants"></div>
+    <div style="margin-top:24px; text-align:center;">
+      <a class="btn btn-outline" href="/grants.html">View all grants →</a>
+    </div>
+  </div>
+</section>
+
+<section style="background:#F1F5F9; padding:80px 0;">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">From operators we've funded</div>
+      <h2>Real businesses. Real outcomes.</h2>
+      <p class="lede">A small sample of recent grant recipients and the work the capital enabled.</p>
+    </div>
+    <div class="testimonials" id="testimonials"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div>
+      <div class="brand"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span></span></div>
+      <p style="color:var(--muted); font-size:14px; margin-top:12px; max-width:28em;">Federally aligned funding opportunities, matched to your business. Independent advisory — not a government agency.</p>
+    </div>
+    <div><h4>Explore</h4><ul><li><a href="/grants.html">Grant Opportunities</a></li><li><a href="/about.html">How It Works</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li>support@capitalbridge.example</li><li>Mon–Fri · 9am – 6pm ET</li></ul></div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© <span id="yr"></span> CapitalBridge Advisory. All rights reserved.</span>
+    <span>Independent funding facilitator · Not a government program.</span>
+  </div>
+</footer>
+
+<script src="/app.js"></script>
+<script>
+document.getElementById("yr").textContent = new Date().getFullYear();
+
+// Testimonials
+var TESTIMONIALS = [
+  { quote: "CapitalBridge matched us with a manufacturing modernization grant in under a week. We retooled two production lines without taking on debt.", name: "Marcus Holloway", role: "CEO, Holloway Precision Works · Ohio", initial: "M" },
+  { quote: "The reviewer notes alone were worth the processing fee. We resubmitted to a second program with their feedback and got funded.", name: "Priya Raman", role: "Founder, Lumen Health Labs · California", initial: "P" },
+  { quote: "I'd been chasing rural development funding for almost a year. CapitalBridge surfaced three I'd never heard of — one of them landed.", name: "Daniel Okafor", role: "Owner, Ridgeline Agro Co-op · Nigeria", initial: "D" },
+  { quote: "Clean process, transparent fees, and a real human on the other side of the application. We closed our $80K green energy grant in 11 days.", name: "Sarah Lindqvist", role: "Operations Director, NorthGrid EV · Minnesota", initial: "S" },
+  { quote: "As a first-time founder, the documentation help made the difference. I would not have submitted a competitive application without it.", name: "Joaquin Beltrán", role: "Founder, Mesa Software · Texas", initial: "J" },
+  { quote: "We used the women-owned business track. Funded, signed, and disbursed inside three weeks. The whole experience was disarmingly professional.", name: "Amara Brooks", role: "Co-founder, Brooks & Vale Studio · Georgia", initial: "A" }
+];
+var tWrap = document.getElementById("testimonials");
+TESTIMONIALS.forEach(function (t) {
+  var c = document.createElement("div");
+  c.className = "tcard";
+  c.innerHTML = '<div class="stars">★★★★★</div>'
+    + '<p class="quote">'+t.quote+'</p>'
+    + '<div class="who"><div class="avatar">'+t.initial+'</div><div class="meta"><div class="name">'+t.name+'</div><div class="role">'+t.role+'</div></div></div>';
+  tWrap.appendChild(c);
+});
+
+// Funding index
+var idx = document.getElementById("fundingIndex");
+CB_GRANTS.slice(0, 6).forEach(function (g) {
+  var row = document.createElement("div");
+  row.className = "index-row";
+  row.innerHTML = '<div><div class="label">'+g.name+'</div><div class="meta">'+g.category+' · '+g.country+'</div></div>' +
+                  '<div class="value">'+CB.fmt(g.fundingMax)+'</div>';
+  idx.appendChild(row);
+});
+
+// Featured grants
+var feat = document.getElementById("featuredGrants");
+CB_GRANTS.slice(0, 3).forEach(function (g) {
+  var c = document.createElement("a");
+  c.className = "card";
+  c.href = "/grant.html?id=" + g.id;
+  c.innerHTML =
+    '<span class="tag">'+g.category+'</span>' +
+    '<h3>'+g.name+'</h3>' +
+    '<p class="desc">'+g.shortDescription+'</p>' +
+    '<div class="foot"><span class="amount">'+CB.fmt(g.fundingMin)+' – '+CB.fmt(g.fundingMax)+'</span><span>View details →</span></div>';
+  feat.appendChild(c);
+});
+</script>
+</body>
+</html>

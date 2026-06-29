@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Console — CapitalBridge</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/home.html"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span><span class="brand-tag">Admin Console</span></span></a>
+    <nav class="nav"><a href="/home.html">Site</a><a href="/grants.html">Grants</a><a href="/admin.html" class="active">Admin</a></nav>
+    <button class="btn btn-outline" id="refreshBtn">Refresh</button>
+  </div>
+</header>
+
+<section class="admin-shell">
+  <div class="container">
+    <div class="section-head" style="text-align:left; margin-bottom:24px;">
+      <div class="eyebrow">Internal · Application Review</div>
+      <h1 style="font-size:2rem; margin:6px 0;">Admin Console</h1>
+      <p style="color:var(--muted); font-size:14px;">Verify payment proofs, approve or reject applications, generate grant paperwork, and send responses.</p>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="btn btn-outline filter-btn active" data-f="all">All <span id="c-all" class="muted"></span></button>
+      <button class="btn btn-outline filter-btn" data-f="pending">Pending <span id="c-pending" class="muted"></span></button>
+      <button class="btn btn-outline filter-btn" data-f="approved">Approved <span id="c-approved" class="muted"></span></button>
+      <button class="btn btn-outline filter-btn" data-f="rejected">Rejected <span id="c-rejected" class="muted"></span></button>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-list" id="appList"><div style="padding:20px; color:var(--muted); font-size:13px;">Loading…</div></div>
+      <div id="detailPane"><div class="admin-detail" style="color:var(--muted);">Select an application to review.</div></div>
+    </div>
+  </div>
+</section>
+
+<script src="/app.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPA_URL = "https://ejmblecwgrynpdkazmhw.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqbWJsZWN3Z3J5bnBka2F6bWh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NTgzMzksImV4cCI6MjA5ODIzNDMzOX0.KSHEiz7CkMlgqZD8ahX6ggjiDT3S8TWHvdnC-y0YFZw";
+const supa = createClient(SUPA_URL, SUPA_KEY);
+
+const state = { apps: [], selectedId: null, filter: "all", proofUrl: null, emailKind: "approval", subject: "", body: "" };
+
+const SENDER_NAME = "Reviewer, CapitalBridge Advisory";
+const SENDER_EMAIL = "review@capitalbridge.example";
+
+function tpl(kind, app) {
+  const grant = CB.getGrant(app.grant_id) || { name: app.grant_name, fundingMax: 0 };
+  const ref = "CB-" + (app.id || "").slice(0,8).toUpperCase();
+  const amount = CB.fmt(grant.fundingMax || 50000);
+  if (kind === "approval") return {
+    subject: `Your CapitalBridge Application Has Been Approved — ${app.grant_name} (Ref ${ref})`,
+    body: `Dear ${app.full_name},
+
+We are pleased to inform you that ${app.business_name}'s application for the ${app.grant_name} program has been APPROVED.
+
+Reference Number: ${ref}
+Approved Amount: up to ${amount}
+Decision Date: ${new Date().toLocaleDateString("en-US", { dateStyle: "long" })}
+
+Attached to this email is your official grant paperwork. Please review, countersign where indicated, and return within 7 business days to initiate disbursement.
+
+Our disbursement team will reach out within 48 hours with banking confirmation and next steps.
+
+Congratulations,
+${SENDER_NAME}
+CapitalBridge Advisory`
+  };
+  return {
+    subject: `Update on Your CapitalBridge Application — ${app.grant_name} (Ref ${ref})`,
+    body: `Dear ${app.full_name},
+
+Thank you for submitting ${app.business_name}'s application to the ${app.grant_name} program.
+
+After careful review by our reviewers, we are unable to advance your application to the funding stage at this time. This decision is not a reflection of your business — every cycle, more qualified applications are submitted than the program can fund.
+
+Reference Number: ${ref}
+Decision Date: ${new Date().toLocaleDateString("en-US", { dateStyle: "long" })}
+
+You are welcome to reapply to this or another aligned program at any time. Our team is happy to share reviewer feedback on request.
+
+With appreciation,
+${SENDER_NAME}
+CapitalBridge Advisory`
+  };
+}
+
+async function load() {
+  const { data, error } = await supa.from("applications").select("*").order("created_at", { ascending: false });
+  if (error) { document.getElementById("appList").innerHTML = '<div style="padding:20px; color:#DC2626; font-size:13px;">Error: '+error.message+'</div>'; return; }
+  state.apps = data || [];
+  updateCounts();
+  renderList();
+  if (state.selectedId) renderDetail();
+}
+
+function updateCounts() {
+  const c = { all: state.apps.length, pending: 0, approved: 0, rejected: 0 };
+  state.apps.forEach(a => { c[a.status] = (c[a.status]||0) + 1; });
+  ["all","pending","approved","rejected"].forEach(k => {
+    const el = document.getElementById("c-"+k); if (el) el.textContent = "· " + (c[k]||0);
+  });
+}
+
+function renderList() {
+  const list = document.getElementById("appList");
+  const filtered = state.filter === "all" ? state.apps : state.apps.filter(a => a.status === state.filter);
+  if (!filtered.length) { list.innerHTML = '<div style="padding:20px; color:var(--muted); font-size:13px;">No applications.</div>'; return; }
+  list.innerHTML = filtered.map(a => `
+    <div class="admin-item ${a.id === state.selectedId ? 'active' : ''}" data-id="${a.id}">
+      <div class="top"><span class="bn">${esc(a.business_name)}</span><span class="status-pill ${a.status}">${a.status}</span></div>
+      <div class="gn">${esc(a.grant_name)} · ${esc(a.full_name)}</div>
+      <div class="gn" style="font-size:11px;">${new Date(a.created_at).toLocaleString()}</div>
+    </div>`).join("");
+  list.querySelectorAll(".admin-item").forEach(el => el.addEventListener("click", () => select(el.dataset.id)));
+}
+
+async function select(id) {
+  state.selectedId = id;
+  state.proofUrl = null;
+  state.emailKind = "approval";
+  const app = state.apps.find(a => a.id === id);
+  if (app && app.payment_proof_url) {
+    const { data } = await supa.storage.from("payment-proofs").createSignedUrl(app.payment_proof_url, 3600);
+    if (data) state.proofUrl = data.signedUrl;
+  }
+  const t = tpl(state.emailKind, app);
+  state.subject = t.subject; state.body = t.body;
+  renderList(); renderDetail();
+}
+
+function esc(s) { return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function renderDetail() {
+  const app = state.apps.find(a => a.id === state.selectedId);
+  const pane = document.getElementById("detailPane");
+  if (!app) { pane.innerHTML = '<div class="admin-detail" style="color:var(--muted);">Select an application to review.</div>'; return; }
+  const ref = "CB-" + app.id.slice(0,8).toUpperCase();
+  pane.innerHTML = `
+    <div class="admin-detail">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <div class="eyebrow">Ref ${ref}</div>
+          <h2 style="font-family:Fraunces,serif; font-size:1.6rem; margin:4px 0;">${esc(app.business_name)}</h2>
+          <div style="color:var(--muted); font-size:13px;">${esc(app.grant_name)} · Submitted ${new Date(app.created_at).toLocaleString()}</div>
+        </div>
+        <span class="status-pill ${app.status}">${app.status}</span>
+      </div>
+
+      <div class="kv-grid">
+        <div class="kv"><div class="k">Applicant</div><div class="v">${esc(app.full_name)}</div></div>
+        <div class="kv"><div class="k">Email</div><div class="v"><a href="mailto:${esc(app.email)}">${esc(app.email)}</a></div></div>
+        <div class="kv"><div class="k">Phone</div><div class="v">${esc(app.phone)}</div></div>
+        <div class="kv"><div class="k">Location</div><div class="v">${esc(app.location)}</div></div>
+        <div class="kv"><div class="k">Business type</div><div class="v">${esc(app.business_type)}</div></div>
+        <div class="kv"><div class="k">Years operating</div><div class="v">${esc(app.years_in_operation)}</div></div>
+        <div class="kv" style="grid-column:1/-1;"><div class="k">Business description</div><div class="v">${esc(app.business_description)}</div></div>
+        <div class="kv" style="grid-column:1/-1;"><div class="k">Funding purpose</div><div class="v" style="white-space:pre-wrap;">${esc(app.funding_purpose)}</div></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Payment proof verification</h3>
+        <div class="kv-grid" style="margin-top:0;">
+          <div class="kv"><div class="k">Method</div><div class="v" style="text-transform:uppercase;">${esc(app.payment_method)}</div></div>
+          <div class="kv"><div class="k">Proof file</div><div class="v">${app.payment_proof_url ? esc(app.payment_proof_url.split("/").pop()) : '<span style="color:#DC2626;">No proof uploaded</span>'}</div></div>
+        </div>
+        ${state.proofUrl ? `
+          <div style="margin-top:14px;">
+            ${state.proofUrl.match(/\.pdf(\?|$)/i)
+              ? `<iframe class="proof-frame" src="${state.proofUrl}"></iframe>`
+              : `<img class="proof-frame" src="${state.proofUrl}" style="object-fit:contain; background:#0F172A;">`}
+            <div style="margin-top:8px;"><a href="${state.proofUrl}" target="_blank" class="btn btn-outline" style="font-size:12px;">Open in new tab ↗</a></div>
+          </div>` : ''}
+      </div>
+
+      <div class="admin-section">
+        <h3>Decision</h3>
+        <div class="action-row">
+          <button class="btn btn-success" id="approveBtn" ${app.status==='approved'?'disabled':''}>✓ Approve application</button>
+          <button class="btn btn-danger" id="rejectBtn" ${app.status==='rejected'?'disabled':''}>✕ Reject application</button>
+          <button class="btn btn-outline" id="pendingBtn" ${app.status==='pending'?'disabled':''}>↺ Mark pending</button>
+        </div>
+        ${app.decided_at ? `<div style="margin-top:10px; font-size:12px; color:var(--muted);">Last decision: ${new Date(app.decided_at).toLocaleString()}</div>` : ''}
+      </div>
+
+      <div class="admin-section">
+        <h3>Grant paperwork</h3>
+        <p style="font-size:13px; color:var(--muted);">Generates an official-looking approval letter (PDF) on CapitalBridge letterhead with the applicant and grant details filled in.</p>
+        <div class="action-row">
+          <button class="btn btn-dark" id="pdfBtn">📄 Generate approval letter (PDF)</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Email response</h3>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="btn btn-outline kind-btn ${state.emailKind==='approval'?'active':''}" data-kind="approval">Approval template</button>
+          <button class="btn btn-outline kind-btn ${state.emailKind==='rejection'?'active':''}" data-kind="rejection">Rejection template</button>
+        </div>
+        <div class="field"><label>To</label><input type="email" id="emailTo" value="${esc(app.email)}"></div>
+        <div class="field" style="margin-top:10px;"><label>Subject</label><input type="text" id="emailSubject" value="${esc(state.subject)}"></div>
+        <div class="field" style="margin-top:10px;"><label>Body</label><textarea id="emailBody" style="min-height:240px; font-family:Inter,sans-serif; font-size:13px;">${esc(state.body)}</textarea></div>
+
+        <div style="margin-top:14px;">
+          <div class="eyebrow" style="font-size:11px;">Live preview</div>
+          <div class="email-preview">
+            <div class="head"><div class="mark">C</div><div><div style="font-weight:600; font-size:14px;">CapitalBridge Advisory</div><div style="font-size:11px; opacity:.7;">${SENDER_EMAIL}</div></div></div>
+            <div class="body" id="emailPreviewBody">${esc(state.body)}</div>
+            <div class="foot">CapitalBridge Advisory · Independent funding facilitator · Not a government program.</div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-primary" id="sendBtn">✉ Open in mail client</button>
+          <button class="btn btn-outline" id="resetTplBtn">Reset to template</button>
+        </div>
+      </div>
+    </div>`;
+
+  bindDetail(app);
+}
+
+function bindDetail(app) {
+  document.getElementById("approveBtn")?.addEventListener("click", () => decide(app, "approved"));
+  document.getElementById("rejectBtn")?.addEventListener("click", () => decide(app, "rejected"));
+  document.getElementById("pendingBtn")?.addEventListener("click", () => decide(app, "pending"));
+  document.getElementById("pdfBtn")?.addEventListener("click", () => generatePdf(app));
+  document.querySelectorAll(".kind-btn").forEach(b => b.addEventListener("click", () => {
+    state.emailKind = b.dataset.kind;
+    const t = tpl(state.emailKind, app);
+    state.subject = t.subject; state.body = t.body;
+    renderDetail();
+  }));
+  const sub = document.getElementById("emailSubject");
+  const bod = document.getElementById("emailBody");
+  sub?.addEventListener("input", () => state.subject = sub.value);
+  bod?.addEventListener("input", () => {
+    state.body = bod.value;
+    document.getElementById("emailPreviewBody").textContent = bod.value;
+  });
+  document.getElementById("resetTplBtn")?.addEventListener("click", () => {
+    const t = tpl(state.emailKind, app); state.subject = t.subject; state.body = t.body; renderDetail();
+  });
+  document.getElementById("sendBtn")?.addEventListener("click", () => {
+    const to = document.getElementById("emailTo").value;
+    const subject = encodeURIComponent(state.subject);
+    const body = encodeURIComponent(state.body);
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+  });
+}
+
+async function decide(app, status) {
+  const { error } = await supa.from("applications").update({ status, decided_at: new Date().toISOString() }).eq("id", app.id);
+  if (error) { CB.toast("Failed: " + error.message); return; }
+  CB.toast("Marked " + status);
+  app.status = status; app.decided_at = new Date().toISOString();
+  updateCounts(); renderList(); renderDetail();
+}
+
+function generatePdf(app) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const W = doc.internal.pageSize.getWidth();
+  const M = 56;
+  const grant = CB.getGrant(app.grant_id) || { name: app.grant_name, fundingMax: 50000 };
+  const ref = "CB-" + app.id.slice(0,8).toUpperCase();
+  const today = new Date().toLocaleDateString("en-US", { dateStyle: "long" });
+
+  // Header bar
+  doc.setFillColor(30, 41, 59); doc.rect(0, 0, W, 80, "F");
+  doc.setFillColor(225, 29, 72); doc.rect(M, 24, 32, 32, "F");
+  doc.setTextColor(255,255,255); doc.setFont("times","bold"); doc.setFontSize(20); doc.text("C", M+10, 47);
+  doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("CapitalBridge Advisory", M+48, 42);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text("Federally Aligned Funding Opportunities", M+48, 58);
+
+  let y = 120;
+  doc.setTextColor(100,116,139); doc.setFontSize(9); doc.setFont("helvetica","normal");
+  doc.text("REFERENCE  " + ref, M, y);
+  doc.text("DATE  " + today, W - M, y, { align: "right" });
+
+  y += 30;
+  doc.setTextColor(30,41,59); doc.setFont("times","bold"); doc.setFontSize(22);
+  doc.text("Notice of Grant Approval", M, y);
+  doc.setDrawColor(225,29,72); doc.setLineWidth(2); doc.line(M, y+8, M+60, y+8);
+
+  y += 44;
+  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(30,41,59);
+  doc.text("Dear " + app.full_name + ",", M, y);
+
+  y += 22;
+  const intro = `We are pleased to formally notify ${app.business_name} that its application to the ${app.grant_name} program has been reviewed and APPROVED by the CapitalBridge review committee.`;
+  doc.text(doc.splitTextToSize(intro, W - M*2), M, y);
+  y += 56;
+
+  // Details box
+  doc.setFillColor(248,250,252); doc.setDrawColor(226,232,240); doc.roundedRect(M, y, W - M*2, 130, 6, 6, "FD");
+  const rows = [
+    ["Recipient Business", app.business_name],
+    ["Authorized Contact", app.full_name],
+    ["Grant Program", app.grant_name],
+    ["Approved Amount", "Up to " + CB.fmt(grant.fundingMax || 50000)],
+    ["Location", app.location],
+    ["Effective Date", today]
+  ];
+  let ry = y + 22;
+  doc.setFontSize(9);
+  rows.forEach(([k,v]) => {
+    doc.setTextColor(100,116,139); doc.setFont("helvetica","bold");
+    doc.text(k.toUpperCase(), M+16, ry);
+    doc.setTextColor(30,41,59); doc.setFont("helvetica","normal"); doc.setFontSize(10.5);
+    doc.text(String(v), M+170, ry);
+    doc.setFontSize(9);
+    ry += 18;
+  });
+
+  y += 150;
+  doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.setTextColor(30,41,59);
+  const body = `Disbursement will be initiated upon receipt of the countersigned acceptance below and verification of your nominated bank account. Funds are to be applied to the use-of-funds outlined in your application. CapitalBridge reserves the right to request periodic progress updates over the deployment period.
+
+On behalf of the entire review committee, congratulations. We look forward to supporting the growth of ${app.business_name}.`;
+  doc.text(doc.splitTextToSize(body, W - M*2), M, y);
+  y += 90;
+
+  // Signature block
+  doc.setFont("helvetica","italic"); doc.setFontSize(13); doc.text("Marcus E. Whitfield", M, y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(100,116,139);
+  doc.setDrawColor(203,213,225); doc.line(M, y+4, M+180, y+4);
+  doc.text("Director of Grant Operations", M, y+18);
+  doc.text("CapitalBridge Advisory", M, y+30);
+
+  // Footer
+  doc.setDrawColor(226,232,240); doc.line(M, 740, W-M, 740);
+  doc.setFontSize(8); doc.setTextColor(148,163,184);
+  doc.text("CapitalBridge Advisory  ·  review@capitalbridge.example  ·  Independent funding facilitator — not a government program.", W/2, 758, { align: "center" });
+
+  doc.save(`CapitalBridge-Approval-${ref}.pdf`);
+}
+
+document.querySelectorAll(".filter-btn").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".filter-btn").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  state.filter = b.dataset.f;
+  renderList();
+}));
+document.getElementById("refreshBtn").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>

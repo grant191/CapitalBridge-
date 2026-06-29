@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grant Details — CapitalBridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/home.html"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span><span class="brand-tag">Funding Opportunities</span></span></a>
+    <nav class="nav"><a href="/home.html">Home</a><a href="/grants.html">Grants</a><a href="/about.html">About</a></nav>
+    <a class="btn btn-primary" href="/grants.html">Apply for Grants</a>
+  </div>
+</header>
+
+<div id="grantWrap"></div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div><div class="brand"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span></span></div><p style="color:var(--muted);font-size:14px;margin-top:12px;max-width:28em;">Federally aligned funding opportunities, matched to your business.</p></div>
+    <div><h4>Explore</h4><ul><li><a href="/grants.html">Grant Opportunities</a></li><li><a href="/about.html">How It Works</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li>support@capitalbridge.example</li><li>Mon–Fri · 9am – 6pm ET</li></ul></div>
+  </div>
+  <div class="container footer-bottom"><span>© <span id="yr"></span> CapitalBridge Advisory.</span><span>Independent funding facilitator.</span></div>
+</footer>
+
+<script src="/app.js"></script>
+<script>
+document.getElementById("yr").textContent = new Date().getFullYear();
+var g = CB.getGrant(CB.qs("id"));
+var wrap = document.getElementById("grantWrap");
+if (!g) {
+  wrap.innerHTML = '<div class="container" style="padding:80px 0; text-align:center;"><div class="eyebrow">Not found</div><h1>Grant not found</h1><p style="color:var(--muted)">That grant ID doesn\'t exist.</p><a class="btn btn-primary" href="/grants.html">Back to Grants</a></div>';
+} else {
+  document.title = g.name + " — CapitalBridge";
+  wrap.innerHTML = ''
+    + '<section class="detail-head"><div class="container">'
+    +   '<div class="crumbs"><a href="/grants.html">Grants</a> / '+g.category+'</div>'
+    +   '<div class="eyebrow">'+g.category+' · '+g.country+'</div>'
+    +   '<h1>'+g.name+'</h1>'
+    +   '<p style="color:var(--muted); max-width:42em; font-size:1.05rem;">'+g.shortDescription+'</p>'
+    + '</div></section>'
+    + '<section style="padding:0 0 64px;"><div class="container detail-grid">'
+    +   '<div>'
+    +     '<h2>About this program</h2><p style="color:var(--fg)">'+g.fullDescription+'</p>'
+    +     '<h2 style="margin-top:32px;">Eligibility</h2><ul class="list-check">'+g.eligibility.map(function(x){return "<li>"+x+"</li>";}).join("")+'</ul>'
+    +     '<h2>Required documents</h2><ul class="list-check">'+g.documents.map(function(x){return "<li>"+x+"</li>";}).join("")+'</ul>'
+    +     '<h2>Benefits</h2><ul class="list-check">'+g.benefits.map(function(x){return "<li>"+x+"</li>";}).join("")+'</ul>'
+    +   '</div>'
+    +   '<aside>'
+    +     '<div class="panel side-card">'
+    +       '<div class="eyebrow">Funding range</div>'
+    +       '<div style="font-family:Fraunces,serif; font-size:1.8rem; color:var(--ink); margin:6px 0 16px;">'+CB.fmt(g.fundingMin)+' – '+CB.fmt(g.fundingMax)+'</div>'
+    +       '<div class="kv"><span class="k">Processing fee</span><span class="v">'+CB.fmt(g.processingFee)+'</span></div>'
+    +       '<div class="kv"><span class="k">Review time</span><span class="v">'+g.processingTime+'</span></div>'
+    +       '<div class="kv"><span class="k">Industry</span><span class="v">'+g.industry+'</span></div>'
+    +       '<a class="btn btn-primary btn-block btn-lg" style="margin-top:18px;" href="/apply.html?id='+g.id+'">Apply for this grant</a>'
+    +       '<p style="font-size:12px; color:var(--muted); margin-top:12px; text-align:center;">Processing fee unlocks the application form.</p>'
+    +     '</div>'
+    +   '</aside>'
+    + '</div></section>';
+}
+</script>
+</body>
+</html>

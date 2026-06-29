@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grant Opportunities — CapitalBridge</title>
+<meta name="description" content="Browse curated funding programs by industry, country, and funding range.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/home.html"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span><span class="brand-tag">Funding Opportunities</span></span></a>
+    <nav class="nav"><a href="/home.html">Home</a><a href="/grants.html">Grants</a><a href="/about.html">About</a></nav>
+    <a class="btn btn-primary" href="/grants.html">Apply for Grants</a>
+  </div>
+</header>
+
+<section style="padding:48px 0 24px;">
+  <div class="container">
+    <div class="eyebrow">Grant directory</div>
+    <h1 style="max-width:18ch;">Browse funding programs.</h1>
+    <p style="color:var(--muted); max-width:42em;">Filter by industry, country, or funding range to surface programs that fit your business profile.</p>
+  </div>
+</section>
+
+<section style="padding:0 0 56px;">
+  <div class="container">
+    <div class="filters">
+      <div class="field"><label for="q">Search</label><input id="q" type="text" placeholder="Search by name, industry…"></div>
+      <div class="field"><label for="cat">Category</label><select id="cat"><option value="">All</option></select></div>
+      <div class="field"><label for="country">Country</label><select id="country"><option value="">All</option></select></div>
+      <div class="field"><label for="range">Funding max</label><select id="range">
+        <option value="">Any</option>
+        <option value="50000">Up to $50K</option>
+        <option value="150000">Up to $150K</option>
+        <option value="999999999">Any amount</option>
+      </select></div>
+    </div>
+
+    <div id="results" class="grid-3"></div>
+    <div id="empty" class="empty" style="display:none;">No grants match your filters. Try widening your search.</div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div><div class="brand"><span class="brand-mark">C</span><span class="brand-text"><span class="brand-name">CapitalBridge</span></span></div><p style="color:var(--muted);font-size:14px;margin-top:12px;max-width:28em;">Federally aligned funding opportunities, matched to your business.</p></div>
+    <div><h4>Explore</h4><ul><li><a href="/grants.html">Grant Opportunities</a></li><li><a href="/about.html">How It Works</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li>support@capitalbridge.example</li><li>Mon–Fri · 9am – 6pm ET</li></ul></div>
+  </div>
+  <div class="container footer-bottom"><span>© <span id="yr"></span> CapitalBridge Advisory.</span><span>Independent funding facilitator.</span></div>
+</footer>
+
+<script src="/app.js"></script>
+<script>
+document.getElementById("yr").textContent = new Date().getFullYear();
+
+// Populate filter options
+var cats = Array.from(new Set(CB_GRANTS.map(function(g){return g.category;}))).sort();
+var countries = Array.from(new Set(CB_GRANTS.map(function(g){return g.country;}))).sort();
+var catSel = document.getElementById("cat"), countrySel = document.getElementById("country");
+cats.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; catSel.appendChild(o); });
+countries.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.textContent=c; countrySel.appendChild(o); });
+
+var results = document.getElementById("results"), empty = document.getElementById("empty");
+function render() {
+  var q = document.getElementById("q").value.toLowerCase().trim();
+  var cat = catSel.value, country = countrySel.value;
+  var max = parseInt(document.getElementById("range").value, 10);
+  var list = CB_GRANTS.filter(function(g){
+    if (cat && g.category !== cat) return false;
+    if (country && g.country !== country) return false;
+    if (max && g.fundingMax > max) return false;
+    if (q && !(g.name.toLowerCase().includes(q) || g.industry.toLowerCase().includes(q) || g.shortDescription.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  results.innerHTML = "";
+  if (!list.length) { empty.style.display = "block"; return; }
+  empty.style.display = "none";
+  list.forEach(function (g) {
+    var c = document.createElement("a");
+    c.className = "card"; c.href = "/grant.html?id=" + g.id;
+    c.innerHTML = '<span class="tag">'+g.category+'</span><h3>'+g.name+'</h3><p class="desc">'+g.shortDescription+'</p>'+
+      '<div class="foot"><span class="amount">'+CB.fmt(g.fundingMin)+' – '+CB.fmt(g.fundingMax)+'</span><span>'+g.country+' →</span></div>';
+    results.appendChild(c);
+  });
+}
+["input","change"].forEach(function(ev){
+  document.querySelectorAll(".filters input, .filters select").forEach(function(el){ el.addEventListener(ev, render); });
+});
+render();
+</script>
+</body>
+</html>
