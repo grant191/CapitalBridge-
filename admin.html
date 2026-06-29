@@ -52,7 +52,7 @@ const supa = createClient(SUPA_URL, SUPA_KEY);
 const state = { apps: [], selectedId: null, filter: "all", proofUrl: null, emailKind: "approval", subject: "", body: "" };
 
 const SENDER_NAME = "Reviewer, CapitalBridge Advisory";
-const SENDER_EMAIL = "review@capitalbridge.example";
+const SENDER_EMAIL = "support@capitalbridge.com";
 
 function tpl(kind, app) {
   const grant = CB.getGrant(app.grant_id) || { name: app.grant_name, fundingMax: 0 };
@@ -341,7 +341,7 @@ On behalf of the entire review committee, congratulations. We look forward to su
   // Footer
   doc.setDrawColor(226,232,240); doc.line(M, 740, W-M, 740);
   doc.setFontSize(8); doc.setTextColor(148,163,184);
-  doc.text("CapitalBridge Advisory  ·  review@capitalbridge.example  ·  Independent funding facilitator — not a government program.", W/2, 758, { align: "center" });
+  doc.text("CapitalBridge Advisory  ·  support@capitalbridge.com  ·  Independent funding facilitator.", W/2, 758, { align: "center" });
 
   doc.save(`CapitalBridge-Approval-${ref}.pdf`);
 }
